@@ -46,7 +46,7 @@ class BoundingBox extends StatelessWidget {
           if (y0 < difH / 2) h -= (difH / 2 - y0) * scaleH;
         }
 
-        final bool isPersonDetected = re["detectedClass"] == "person" && re["confidenceInClass"] > 0.6;
+        final bool isPersonDetected = re["detectedClass"] == "person" && re["confidenceInClass"] > 0.45;
 
         if(re["confidenceInClass"] < 0.5){
           return Container();

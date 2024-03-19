@@ -1,6 +1,7 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:motion_surveillance/realtime/bounding_box.dart';
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter_tflite/flutter_tflite.dart';
 import 'package:motion_surveillance/video_page.dart';
@@ -19,59 +20,51 @@ class CameraFeedState extends State<CameraFeed> {
   late CameraController controller;
   bool isDetecting = false;
   bool _isRecording = false;
-
-  _recordVideo() async {
-  if (_isRecording) {
-    final file = await controller.stopVideoRecording();
-    setState(() => _isRecording = false);
-    final route = MaterialPageRoute(
-      fullscreenDialog: true,
-      builder: (_) => VideoPage(filePath: file.path),
-    );
-    Navigator.push(context, route);
-  } else {
-    await controller.prepareForVideoRecording();
-    await controller.startVideoRecording();
-    setState(() => _isRecording = true);
-  }
-}
+  late Timer _timer;
+  late List<dynamic> _recognitions;
+  int _imageHeight = 0;
+  int _imageWidth = 0;
 
   @override
   void initState() {
+    super.initState();
     _recognitions = [];
     loadTfModel();
-    super.initState();
-    if (widget.cameras.isEmpty) {
-    } else {
-      controller = CameraController(
-        widget.cameras[0],
-        ResolutionPreset.max,
-      );
-      controller.initialize().then((_) {
-        if (!mounted) {
-          return;
-        }
-        setState(() {});
-        controller.startImageStream((CameraImage img) {
-          if (!isDetecting) {
-            isDetecting = true;
-            Tflite.detectObjectOnFrame(
-              bytesList: img.planes.map((plane) => plane.bytes).toList(),
-              model: "SSDMobileNet",
-              imageHeight: img.height,
-              imageWidth: img.width,
-              imageMean: 127.5,
-              imageStd: 127.5,
-              numResultsPerClass: 1,
-              threshold: 0.4,
-            ).then((recognitions) {
-              setRecognitions(recognitions, img.height, img.width);
-              isDetecting = false;
-            });
-          }
+    initCamera();
+  }
+
+  void initCamera() async {
+    if (widget.cameras.isEmpty) return;
+
+    controller = CameraController(
+      widget.cameras[0],
+      ResolutionPreset.max,
+    );
+
+    await controller.initialize();
+
+    if (!mounted) return;
+
+    setState(() {});
+
+    controller.startImageStream((CameraImage img) {
+      if (!isDetecting) {
+        isDetecting = true;
+        Tflite.detectObjectOnFrame(
+          bytesList: img.planes.map((plane) => plane.bytes).toList(),
+          model: "SSDMobileNet",
+          imageHeight: img.height,
+          imageWidth: img.width,
+          imageMean: 127.5,
+          imageStd: 127.5,
+          numResultsPerClass: 1,
+          threshold: 0.4,
+        ).then((recognitions) {
+          setRecognitions(recognitions, img.height, img.width);
+          isDetecting = false;
         });
-      });
-    }
+      }
+    });
   }
 
   @override
@@ -80,23 +73,54 @@ class CameraFeedState extends State<CameraFeed> {
     super.dispose();
   }
 
-  late List<dynamic> _recognitions;
-  int _imageHeight = 0;
-  int _imageWidth = 0;
-  initCameras() async {}
-  loadTfModel() async {
+  void loadTfModel() async {
     await Tflite.loadModel(
       model: "assets/model.tflite",
       labels: "assets/labels.txt",
     );
   }
 
-  setRecognitions(recognitions, imageHeight, imageWidth) {
+  void setRecognitions(recognitions, imageHeight, imageWidth) {
     setState(() {
       _recognitions = recognitions;
       _imageHeight = imageHeight;
       _imageWidth = imageWidth;
+
+      if (_isRecording) {
+        return;
+      }
+
+      bool personDetected = _recognitions.any((element) =>
+          element['detectedClass'] == 'person' &&
+          element['confidenceInClass'] > 0.5); 
+
+      if (personDetected) {
+        if (!_isRecording) {
+          _startRecording();
+        }
+      } else {
+        if (_isRecording) {
+          _timer.cancel();
+          _stopRecording();
+        }
+      }
     });
+  }
+
+  void _startRecording() async {
+    await controller.prepareForVideoRecording();
+    await controller.startVideoRecording();
+    setState(() => _isRecording = true);
+  }
+
+  void _stopRecording() async {
+    final file = await controller.stopVideoRecording();
+    setState(() => _isRecording = false);
+    final route = MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (_) => VideoPage(filePath: file.path),
+    );
+    Navigator.push(context, route);
   }
 
   @override
@@ -115,9 +139,22 @@ class CameraFeedState extends State<CameraFeed> {
     var previewRatio = previewH / previewW;
 
     Size screen = MediaQuery.of(context).size;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Motion Surveillance System"),
+        actions: [
+          IconButton(
+            onPressed: () {
+              if (!_isRecording) {
+                _startRecording();
+              } else {
+                _stopRecording();
+              }
+            },
+            icon: Icon(_isRecording ? Icons.stop : Icons.circle),
+          ),
+        ],
       ),
       body: Stack(
         children: <Widget>[
@@ -137,12 +174,6 @@ class CameraFeedState extends State<CameraFeed> {
             screen.height,
             screen.width,
           ),
-          FloatingActionButton(
-            onPressed: () => _recordVideo(),
-            backgroundColor: Colors.red,
-            child: Icon(_isRecording ? Icons.stop : Icons.circle),
-
-          )
         ],
       ),
     );
