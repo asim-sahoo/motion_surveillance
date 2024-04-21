@@ -1,10 +1,10 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:motion_surveillance/realtime/bounding_box.dart';
-import 'dart:async';
 import 'dart:math' as math;
+import 'dart:async';
 import 'package:flutter_tflite/flutter_tflite.dart';
-import 'package:motion_surveillance/video_page.dart';
+import 'package:motion_surveillance/gallery_screen.dart';
 
 typedef Callback = void Function(List<dynamic>? list, int h, int w);
 
@@ -20,33 +20,42 @@ class CameraFeedState extends State<CameraFeed> {
   late CameraController controller;
   bool isDetecting = false;
   bool _isRecording = false;
-  late Timer _timer;
   late List<dynamic> _recognitions;
   int _imageHeight = 0;
   int _imageWidth = 0;
+  late Timer _timer;
+  late List<XFile> _recordedVideos;
 
   @override
   void initState() {
     super.initState();
     _recognitions = [];
+    _recordedVideos = [];
     loadTfModel();
     initCamera();
   }
 
+  // void startTenSecondTimer() {
+  //   _timer = Timer(const Duration(seconds: 10), () {
+  //     if (_isRecording) {
+  //       // _stopRecording();
+  //     }
+  //   });
+  // }
+
   void initCamera() async {
     if (widget.cameras.isEmpty) return;
-
     controller = CameraController(
       widget.cameras[0],
       ResolutionPreset.max,
     );
-
     await controller.initialize();
-
     if (!mounted) return;
-
+    startImageStream();
     setState(() {});
+  }
 
+  void startImageStream() {
     controller.startImageStream((CameraImage img) {
       if (!isDetecting) {
         isDetecting = true;
@@ -69,7 +78,9 @@ class CameraFeedState extends State<CameraFeed> {
 
   @override
   void dispose() {
+    controller.stopImageStream();
     controller.dispose();
+    Tflite.close();
     super.dispose();
   }
 
@@ -86,42 +97,31 @@ class CameraFeedState extends State<CameraFeed> {
       _imageHeight = imageHeight;
       _imageWidth = imageWidth;
 
-      if (_isRecording) {
-        return;
-      }
-
       bool personDetected = _recognitions.any((element) =>
           element['detectedClass'] == 'person' &&
-          element['confidenceInClass'] > 0.5); 
+          element['confidenceInClass'] > 0.5);
 
-      if (personDetected) {
-        if (!_isRecording) {
-          _startRecording();
-        }
-      } else {
-        if (_isRecording) {
-          _timer.cancel();
-          _stopRecording();
-        }
+      if (personDetected && !_isRecording) {
+        // _startRecording();
       }
     });
   }
 
-  void _startRecording() async {
-    await controller.prepareForVideoRecording();
-    await controller.startVideoRecording();
-    setState(() => _isRecording = true);
-  }
+  // void _startRecording() async {
+  //   await controller.prepareForVideoRecording();
+  //   await controller.startVideoRecording();
+  //   setState(() => _isRecording = true);
+  //   startTenSecondTimer();
+  // }
 
-  void _stopRecording() async {
-    final file = await controller.stopVideoRecording();
-    setState(() => _isRecording = false);
-    final route = MaterialPageRoute(
-      fullscreenDialog: true,
-      builder: (_) => VideoPage(filePath: file.path),
-    );
-    Navigator.push(context, route);
-  }
+  // void _stopRecording() async {
+  //   final file = await controller.stopVideoRecording();
+  //   setState(() {
+  //     _isRecording = false;
+  //     _recordedVideos.add(file); // Add recorded video to the list
+  //     startImageStream();
+  //   });
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -147,12 +147,16 @@ class CameraFeedState extends State<CameraFeed> {
           IconButton(
             onPressed: () {
               if (!_isRecording) {
-                _startRecording();
+                // _startRecording();
               } else {
-                _stopRecording();
+                // _stopRecording();
               }
             },
             icon: Icon(_isRecording ? Icons.stop : Icons.circle),
+          ),
+          IconButton(
+            onPressed: _navigateToGallery,
+            icon: const Icon(Icons.video_library),
           ),
         ],
       ),
@@ -175,6 +179,15 @@ class CameraFeedState extends State<CameraFeed> {
             screen.width,
           ),
         ],
+      ),
+    );
+  }
+
+  void _navigateToGallery() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GalleryScreen(videoFiles: _recordedVideos),
       ),
     );
   }

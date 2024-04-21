@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 class VideoPage extends StatefulWidget {
-  const VideoPage({Key? key, required this.filePath}) : super(key: key);
+  const VideoPage({super.key, required this.filePath});
   final String filePath;
 
   @override
@@ -36,9 +36,13 @@ class _VideoPageState extends State<VideoPage> {
         backgroundColor: Colors.black26,
         actions: [
           IconButton(
-            icon: const Icon(Icons.check),
+            icon: const Icon(Icons.play_arrow),
             onPressed: () {
-              print('do something with the file');
+              if (_videoPlayerController.value.isPlaying) {
+                _videoPlayerController.pause();
+              } else {
+                _videoPlayerController.play();
+              }
             },
           )
         ],
