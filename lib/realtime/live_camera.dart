@@ -35,13 +35,13 @@ class CameraFeedState extends State<CameraFeed> {
     initCamera();
   }
 
-  // void startTenSecondTimer() {
-  //   _timer = Timer(const Duration(seconds: 10), () {
-  //     if (_isRecording) {
-  //       // _stopRecording();
-  //     }
-  //   });
-  // }
+  void startTenSecondTimer() {
+    _timer = Timer(const Duration(seconds: 10), () {
+      if (_isRecording) {
+        _stopRecording();
+      }
+    });
+  }
 
   void initCamera() async {
     if (widget.cameras.isEmpty) return;
@@ -99,29 +99,29 @@ class CameraFeedState extends State<CameraFeed> {
 
       bool personDetected = _recognitions.any((element) =>
           element['detectedClass'] == 'person' &&
-          element['confidenceInClass'] > 0.5);
+          element['confidenceInClass'] > 0.65);
 
       if (personDetected && !_isRecording) {
-        // _startRecording();
+        _startRecording();
       }
     });
   }
 
-  // void _startRecording() async {
-  //   await controller.prepareForVideoRecording();
-  //   await controller.startVideoRecording();
-  //   setState(() => _isRecording = true);
-  //   startTenSecondTimer();
-  // }
+  void _startRecording() async {
+    await controller.prepareForVideoRecording();
+    await controller.startVideoRecording();
+    setState(() => _isRecording = true);
+    startTenSecondTimer();
+  }
 
-  // void _stopRecording() async {
-  //   final file = await controller.stopVideoRecording();
-  //   setState(() {
-  //     _isRecording = false;
-  //     _recordedVideos.add(file); // Add recorded video to the list
-  //     startImageStream();
-  //   });
-  // }
+  void _stopRecording() async {
+    final file = await controller.stopVideoRecording();
+    setState(() {
+      _isRecording = false;
+      _recordedVideos.add(file); // Add recorded video to the list
+      startImageStream();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -137,27 +137,20 @@ class CameraFeedState extends State<CameraFeed> {
     var previewW = math.min(tmp.height, tmp.width);
     var screenRatio = screenH / screenW;
     var previewRatio = previewH / previewW;
+    var h = MediaQuery.of(context).size.height;
+    var w = MediaQuery.of(context).size.width;
 
     Size screen = MediaQuery.of(context).size;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text("Motion Surveillance System"),
+        automaticallyImplyLeading: false,
         actions: [
-          IconButton(
-            onPressed: () {
-              if (!_isRecording) {
-                // _startRecording();
-              } else {
-                // _stopRecording();
-              }
-            },
-            icon: Icon(_isRecording ? Icons.stop : Icons.circle),
-          ),
           IconButton(
             onPressed: _navigateToGallery,
             icon: const Icon(Icons.video_library),
-          ),
+          )
         ],
       ),
       body: Stack(
@@ -177,6 +170,48 @@ class CameraFeedState extends State<CameraFeed> {
             math.min(_imageHeight, _imageWidth),
             screen.height,
             screen.width,
+          ),
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  Colors.transparent,
+                  Colors.black45,
+                  Colors.black87,
+                ],
+              ),
+            ),
+          ),
+          Center(
+            child: Container(
+              margin: EdgeInsets.only(top: h * 0.65),
+              decoration: BoxDecoration(
+                border: Border.all(width: 0, color: Colors.transparent),
+              ),
+              height: h * 0.1,
+              width: w * 0.31,
+              child: OutlinedButton(
+                onPressed: () {
+                  if (!_isRecording) {
+                    _startRecording();
+                  } else {
+                    _stopRecording();
+                  }
+                },
+                style: OutlinedButton.styleFrom(
+                  shape: const CircleBorder(),
+                  side: const BorderSide(color: Colors.white, width: 4.0)
+                ),
+                child: Icon(
+                  _isRecording ? Icons.stop : Icons.circle,
+                  size: _isRecording ? 40 : 75,
+                  color: _isRecording ? Colors.red : Colors.white,
+                ),
+              ),
+            ),
           ),
         ],
       ),

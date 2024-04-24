@@ -1,5 +1,6 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+// import 'package:get/get_connect/http/src/utils/utils.dart';
 import 'package:motion_surveillance/realtime/live_camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -38,27 +39,89 @@ class MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Motion Surveillance System"),
-      ),
+      backgroundColor: const Color.fromARGB(255, 57, 156, 252),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            ButtonTheme(
-              minWidth: 160,
-              child: ElevatedButton(
-                child: const Text("Start"),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CameraFeed(cameras),
-                    ),
-                  );
-                },
+            const Expanded(
+              flex: 0,
+              child: Padding(
+                padding: EdgeInsets.all(40),
+                child: Text(
+                  "SEE-curity",
+                  style: TextStyle(
+                      fontSize: 40,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900),
+                  textAlign: TextAlign.center,
+                ),
               ),
             ),
+            Expanded(
+              flex: 0,
+              child: Padding(
+                padding: const EdgeInsets.all(30),
+                child: Image.asset(
+                  "assets/elements/camera.gif",
+                  width: MediaQuery.of(context).size.width * 0.8,
+                ),
+              ),
+            ),
+            const SizedBox(
+              height: 45
+              
+              
+              ,
+            ),
+            // const SizedBox(height: 5),
+            Expanded(
+                flex: 0,
+                // padding: const EdgeInsets.only(bottom: 10, left: 10, right: 10),
+                child: Directionality(
+                  textDirection: TextDirection.rtl,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15.0),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CameraFeed(cameras),
+                        ),
+                      );
+                    },
+                    icon: const Padding(
+                      padding: EdgeInsets.fromLTRB(0, 0, 40, 0),
+                      child: Icon(
+                        Icons.arrow_back_rounded,
+                        color: Color.fromARGB(255, 75, 165, 255),
+                      ),
+                    ),
+                    label: const Padding(
+                      padding: EdgeInsets.fromLTRB(40, 0, 0, 0),
+                      child: Text(
+                        "Get Started",
+                        style: TextStyle(fontSize: 20, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ),
+              
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              "A Personalised AI - Powered Security System",
+              style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500),
+              textAlign: TextAlign.center,
+            )
           ],
         ),
       ),

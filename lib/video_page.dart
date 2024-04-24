@@ -32,6 +32,7 @@ class _VideoPageState extends State<VideoPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Preview'),
+        automaticallyImplyLeading: false,
         elevation: 0,
         backgroundColor: Colors.black26,
         actions: [
@@ -47,7 +48,6 @@ class _VideoPageState extends State<VideoPage> {
           )
         ],
       ),
-      extendBodyBehindAppBar: true,
       body: FutureBuilder(
         future: _initVideoPlayer(),
         builder: (context, state) {

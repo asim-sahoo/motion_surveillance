@@ -19,8 +19,8 @@ class GalleryScreen extends StatelessWidget {
       ),
       body: ListView.separated(
         separatorBuilder: (ctx, index) => const Divider(
-          height: 10,
-          thickness: 0.14,
+          height: 0,
+          thickness: 0,
           color: Colors.grey,
           endIndent: 46,
           indent: 46,

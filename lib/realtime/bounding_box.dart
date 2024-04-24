@@ -9,12 +9,8 @@ class BoundingBox extends StatelessWidget {
   final double screenW;
 
   const BoundingBox(
-    this.results,
-    this.previewH,
-    this.previewW,
-    this.screenH,
-    this.screenW, {super.key}
-  );
+      this.results, this.previewH, this.previewW, this.screenH, this.screenW,
+      {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -46,35 +42,46 @@ class BoundingBox extends StatelessWidget {
           if (y0 < difH / 2) h -= (difH / 2 - y0) * scaleH;
         }
 
-        final bool isPersonDetected = re["detectedClass"] == "person" && re["confidenceInClass"] > 0.45;
+        final bool isPersonDetected =
+            re["detectedClass"] == "person" && re["confidenceInClass"] > 0.45;
 
-        if(re["confidenceInClass"] < 0.5){
+        if (re["confidenceInClass"] < 0.5) {
           return Container();
         }
 
         return Positioned(
           left: math.max(0, x),
           top: math.max(0, y),
-          width: w,
-          height: h,
-          child: Container(
-            padding: const EdgeInsets.only(top: 5.0, left: 5.0),
-            decoration: BoxDecoration(
-              border: Border.all(
-                color:  isPersonDetected ? const Color.fromARGB(150, 244, 67, 54) : const Color.fromARGB(150, 37, 213, 253),
-                width: 2.5,
+          child: Column(
+            children: [
+              Text(
+                "${re["detectedClass"]} ${(re["confidenceInClass"] * 100).toStringAsFixed(0)}%",
+                style: TextStyle(
+                  color: isPersonDetected
+                      ? Colors.green
+                      : Colors.red,
+                  fontSize: 14.0,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              color: isPersonDetected ? const Color.fromARGB(50, 244, 67, 54) : const Color.fromARGB(50, 37, 213, 253),
-              borderRadius: const BorderRadius.all(Radius.circular(15.0)),
-            ),
-            child: Text(
-              "${re["detectedClass"]} ${(re["confidenceInClass"] * 100).toStringAsFixed(0)}%",
-              style: TextStyle(
-                color: isPersonDetected ? const Color.fromARGB(150, 244, 67, 54) : const Color.fromARGB(150, 37, 213, 253),
-                fontSize: 14.0,
-                fontWeight: FontWeight.bold,
+              Container(
+                width: w,
+                height: h,
+                padding: const EdgeInsets.only(top: 5.0, left: 10.0),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: isPersonDetected
+                        ? const Color.fromARGB(150, 76, 175, 79)
+                        : const Color.fromARGB(100, 244, 67, 54),
+                    width: 1.5,
+                  ),
+                  color: isPersonDetected
+                      ? const Color.fromARGB(25, 76, 175, 79)
+                      : const Color.fromARGB(25, 244, 67, 54),
+                  borderRadius: const BorderRadius.all(Radius.circular(10.0)),
+                ),
               ),
-            ),
+            ],
           ),
         );
       }).toList();
