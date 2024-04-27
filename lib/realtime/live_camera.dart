@@ -25,6 +25,7 @@ class CameraFeedState extends State<CameraFeed> {
   int _imageWidth = 0;
   late Timer _timer;
   late List<XFile> _recordedVideos;
+  bool _isCameraFeedOpen = false;
 
   @override
   void initState() {
@@ -81,6 +82,7 @@ class CameraFeedState extends State<CameraFeed> {
     controller.stopImageStream();
     controller.dispose();
     Tflite.close();
+    _timer.cancel();
     super.dispose();
   }
 
@@ -101,7 +103,7 @@ class CameraFeedState extends State<CameraFeed> {
           element['detectedClass'] == 'person' &&
           element['confidenceInClass'] > 0.65);
 
-      if (personDetected && !_isRecording) {
+      if (personDetected && !_isRecording && _isCameraFeedOpen) {
         _startRecording();
       }
     });
@@ -111,6 +113,12 @@ class CameraFeedState extends State<CameraFeed> {
     await controller.prepareForVideoRecording();
     await controller.startVideoRecording();
     setState(() => _isRecording = true);
+    // ignore: use_build_context_synchronously
+    ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Video Recording Started"),
+        ),
+      );
     startTenSecondTimer();
   }
 
@@ -118,13 +126,23 @@ class CameraFeedState extends State<CameraFeed> {
     final file = await controller.stopVideoRecording();
     setState(() {
       _isRecording = false;
-      _recordedVideos.add(file); // Add recorded video to the list
+      _recordedVideos.add(file);
+      //toast for video saved
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Video Saved"),
+        ),
+      );
       startImageStream();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    
+    _isCameraFeedOpen = true;
+    controller.resumePreview();
+
     if (!controller.value.isInitialized) {
       return Container();
     }
@@ -164,13 +182,14 @@ class CameraFeedState extends State<CameraFeed> {
                 : screenW,
             child: CameraPreview(controller),
           ),
-          BoundingBox(
-            _recognitions,
-            math.max(_imageHeight, _imageWidth),
-            math.min(_imageHeight, _imageWidth),
-            screen.height,
-            screen.width,
-          ),
+          if (!_isRecording)
+            BoundingBox(
+              _recognitions,
+              math.max(_imageHeight, _imageWidth),
+              math.min(_imageHeight, _imageWidth),
+              screen.height,
+              screen.width,
+            ),
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -202,9 +221,8 @@ class CameraFeedState extends State<CameraFeed> {
                   }
                 },
                 style: OutlinedButton.styleFrom(
-                  shape: const CircleBorder(),
-                  side: const BorderSide(color: Colors.white, width: 4.0)
-                ),
+                    shape: const CircleBorder(),
+                    side: const BorderSide(color: Colors.white, width: 4.0)),
                 child: Icon(
                   _isRecording ? Icons.stop : Icons.circle,
                   size: _isRecording ? 40 : 75,
@@ -219,11 +237,14 @@ class CameraFeedState extends State<CameraFeed> {
   }
 
   void _navigateToGallery() {
+    _isCameraFeedOpen = false;
+    controller.pausePreview();
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => GalleryScreen(videoFiles: _recordedVideos),
       ),
     );
+    
   }
 }

@@ -39,7 +39,7 @@ class MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 57, 156, 252),
+      backgroundColor: const Color.fromARGB(255,63,152,250),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -65,6 +65,7 @@ class MyAppState extends State<MyApp> {
                 child: Image.asset(
                   "assets/elements/camera.gif",
                   width: MediaQuery.of(context).size.width * 0.8,
+                  colorBlendMode: BlendMode.overlay,
                 ),
               ),
             ),
