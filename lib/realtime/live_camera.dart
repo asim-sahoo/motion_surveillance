@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'dart:async';
 import 'package:flutter_tflite/flutter_tflite.dart';
 import 'package:motion_surveillance/gallery_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 typedef Callback = void Function(List<dynamic>? list, int h, int w);
 
@@ -34,10 +35,19 @@ class CameraFeedState extends State<CameraFeed> {
     _recordedVideos = [];
     loadTfModel();
     initCamera();
+    loadSavedVideos();
+  }
+
+  Future<void> loadSavedVideos() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedVideos = prefs.getStringList('video_paths') ?? [];
+    setState(() {
+      _recordedVideos = savedVideos.map((path) => XFile(path)).toList();
+    });
   }
 
   void startTenSecondTimer() {
-    _timer = Timer(const Duration(seconds: 10), () {
+    _timer = Timer(const Duration(seconds: 5), () {
       if (_isRecording) {
         _stopRecording();
       }
@@ -121,12 +131,20 @@ class CameraFeedState extends State<CameraFeed> {
       );
     startTenSecondTimer();
   }
+  
+  Future<void> saveVideoPath(String path) async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedVideos = prefs.getStringList('video_paths') ?? [];
+    savedVideos.add(path);
+    await prefs.setStringList('video_paths', savedVideos);
+  }
 
   void _stopRecording() async {
     final file = await controller.stopVideoRecording();
     setState(() {
       _isRecording = false;
       _recordedVideos.add(file);
+      saveVideoPath(file.path);
       //toast for video saved
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -136,6 +154,8 @@ class CameraFeedState extends State<CameraFeed> {
       startImageStream();
     });
   }
+
+
 
   @override
   Widget build(BuildContext context) {

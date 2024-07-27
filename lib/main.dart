@@ -1,6 +1,5 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-// import 'package:get/get_connect/http/src/utils/utils.dart';
 import 'package:motion_surveillance/realtime/live_camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 
