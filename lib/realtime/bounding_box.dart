@@ -9,8 +9,13 @@ class BoundingBox extends StatelessWidget {
   final double screenW;
 
   const BoundingBox(
-      this.results, this.previewH, this.previewW, this.screenH, this.screenW,
-      {super.key});
+    this.results,
+    this.previewH,
+    this.previewW,
+    this.screenH,
+    this.screenW, {
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -57,9 +62,7 @@ class BoundingBox extends StatelessWidget {
               Text(
                 "${re["detectedClass"]} ${(re["confidenceInClass"] * 100).toStringAsFixed(0)}%",
                 style: TextStyle(
-                  color: isPersonDetected
-                      ? Colors.green
-                      : Colors.red,
+                  color: isPersonDetected ? Colors.green : Colors.red,
                   fontSize: 14.0,
                   fontWeight: FontWeight.bold,
                 ),
@@ -70,14 +73,16 @@ class BoundingBox extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 5.0, left: 10.0),
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: isPersonDetected
-                        ? const Color.fromARGB(150, 76, 175, 79)
-                        : const Color.fromARGB(100, 244, 67, 54),
+                    color:
+                        isPersonDetected
+                            ? const Color.fromARGB(150, 76, 175, 79)
+                            : const Color.fromARGB(100, 244, 67, 54),
                     width: 1.5,
                   ),
-                  color: isPersonDetected
-                      ? const Color.fromARGB(25, 76, 175, 79)
-                      : const Color.fromARGB(25, 244, 67, 54),
+                  color:
+                      isPersonDetected
+                          ? const Color.fromARGB(25, 76, 175, 79)
+                          : const Color.fromARGB(25, 244, 67, 54),
                   borderRadius: const BorderRadius.all(Radius.circular(10.0)),
                 ),
               ),
@@ -87,8 +92,6 @@ class BoundingBox extends StatelessWidget {
       }).toList();
     }
 
-    return Stack(
-      children: renderBox(),
-    );
+    return Stack(children: renderBox());
   }
 }

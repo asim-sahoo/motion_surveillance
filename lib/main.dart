@@ -1,6 +1,6 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:motion_surveillance/realtime/live_camera.dart';
+import 'package:motion_test/realtime/live_camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 late List<CameraDescription> cameras;

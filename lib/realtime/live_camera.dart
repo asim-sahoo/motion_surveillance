@@ -1,10 +1,11 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:motion_surveillance/realtime/bounding_box.dart';
+import 'package:flutter/services.dart';
+import 'package:motion_test/realtime/bounding_box.dart';
 import 'dart:math' as math;
 import 'dart:async';
 import 'package:flutter_tflite/flutter_tflite.dart';
-import 'package:motion_surveillance/gallery_screen.dart';
+import 'package:motion_test/gallery_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 typedef Callback = void Function(List<dynamic>? list, int h, int w);
@@ -56,11 +57,23 @@ class CameraFeedState extends State<CameraFeed> {
 
   void initCamera() async {
     if (widget.cameras.isEmpty) return;
-    controller = CameraController(
-      widget.cameras[0],
-      ResolutionPreset.max,
+
+    // Find the back camera
+    final backCamera = widget.cameras.firstWhere(
+      (camera) => camera.lensDirection == CameraLensDirection.back,
+      orElse: () => widget.cameras.first,
     );
+
+    controller = CameraController(
+      backCamera,
+      ResolutionPreset.max,
+      enableAudio: true,
+      imageFormatGroup: ImageFormatGroup.bgra8888,
+    );
+
     await controller.initialize();
+    await controller.lockCaptureOrientation(DeviceOrientation.portraitDown);
+
     if (!mounted) return;
     startImageStream();
     setState(() {});
@@ -77,8 +90,9 @@ class CameraFeedState extends State<CameraFeed> {
           imageWidth: img.width,
           imageMean: 127.5,
           imageStd: 127.5,
-          numResultsPerClass: 1,
-          threshold: 0.4,
+          numResultsPerClass: 2,
+          threshold: 0.1,
+          asynch: true,
         ).then((recognitions) {
           setRecognitions(recognitions, img.height, img.width);
           isDetecting = false;
@@ -109,9 +123,11 @@ class CameraFeedState extends State<CameraFeed> {
       _imageHeight = imageHeight;
       _imageWidth = imageWidth;
 
-      bool personDetected = _recognitions.any((element) =>
-          element['detectedClass'] == 'person' &&
-          element['confidenceInClass'] > 0.65);
+      bool personDetected = _recognitions.any(
+        (element) =>
+            element['detectedClass'] == 'person' &&
+            element['confidenceInClass'] > 0.65,
+      );
 
       if (personDetected && !_isRecording && _isCameraFeedOpen) {
         _startRecording();
@@ -124,14 +140,12 @@ class CameraFeedState extends State<CameraFeed> {
     await controller.startVideoRecording();
     setState(() => _isRecording = true);
     // ignore: use_build_context_synchronously
-    ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Video Recording Started"),
-        ),
-      );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text("Video Recording Started")));
     startTenSecondTimer();
   }
-  
+
   Future<void> saveVideoPath(String path) async {
     final prefs = await SharedPreferences.getInstance();
     final savedVideos = prefs.getStringList('video_paths') ?? [];
@@ -146,20 +160,15 @@ class CameraFeedState extends State<CameraFeed> {
       _recordedVideos.add(file);
       saveVideoPath(file.path);
       //toast for video saved
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Video Saved"),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Video Saved")));
       startImageStream();
     });
   }
 
-
-
   @override
   Widget build(BuildContext context) {
-    
     _isCameraFeedOpen = true;
     controller.resumePreview();
 
@@ -175,10 +184,6 @@ class CameraFeedState extends State<CameraFeed> {
     var previewW = math.min(tmp.height, tmp.width);
     var screenRatio = screenH / screenW;
     var previewRatio = previewH / previewW;
-    var h = MediaQuery.of(context).size.height;
-    var w = MediaQuery.of(context).size.width;
-
-    Size screen = MediaQuery.of(context).size;
 
     return Scaffold(
       appBar: AppBar(
@@ -188,27 +193,43 @@ class CameraFeedState extends State<CameraFeed> {
           IconButton(
             onPressed: _navigateToGallery,
             icon: const Icon(Icons.video_library),
-          )
+          ),
         ],
       ),
       body: Stack(
         children: <Widget>[
-          OverflowBox(
-            maxHeight: screenRatio > previewRatio
-                ? screenH
-                : screenW / previewW * previewH,
-            maxWidth: screenRatio > previewRatio
-                ? screenH / previewH * previewW
-                : screenW,
-            child: CameraPreview(controller),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return SizedBox.expand(
+                child: Transform.scale(
+                  scale:
+                      controller.value.aspectRatio /
+                      constraints.maxWidth *
+                      constraints.maxHeight,
+                  child: Center(
+                    child: Transform(
+                      alignment: Alignment.center,
+                      transform:
+                          Matrix4.identity()..rotateZ(
+                            -math.pi / 2,
+                          ), // Rotate 90 degrees counter-clockwise
+                      child: AspectRatio(
+                        aspectRatio: controller.value.aspectRatio,
+                        child: CameraPreview(controller),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
           if (!_isRecording)
             BoundingBox(
               _recognitions,
               math.max(_imageHeight, _imageWidth),
               math.min(_imageHeight, _imageWidth),
-              screen.height,
-              screen.width,
+              screenH,
+              screenW,
             ),
           Container(
             decoration: const BoxDecoration(
@@ -226,12 +247,12 @@ class CameraFeedState extends State<CameraFeed> {
           ),
           Center(
             child: Container(
-              margin: EdgeInsets.only(top: h * 0.65),
+              margin: EdgeInsets.only(top: screenH * 0.65),
               decoration: BoxDecoration(
                 border: Border.all(width: 0, color: Colors.transparent),
               ),
-              height: h * 0.1,
-              width: w * 0.31,
+              height: screenH * 0.1,
+              width: screenW * 0.31,
               child: OutlinedButton(
                 onPressed: () {
                   if (!_isRecording) {
@@ -241,8 +262,9 @@ class CameraFeedState extends State<CameraFeed> {
                   }
                 },
                 style: OutlinedButton.styleFrom(
-                    shape: const CircleBorder(),
-                    side: const BorderSide(color: Colors.white, width: 4.0)),
+                  shape: const CircleBorder(),
+                  side: const BorderSide(color: Colors.white, width: 4.0),
+                ),
                 child: Icon(
                   _isRecording ? Icons.stop : Icons.circle,
                   size: _isRecording ? 40 : 75,
@@ -265,6 +287,6 @@ class CameraFeedState extends State<CameraFeed> {
         builder: (context) => GalleryScreen(videoFiles: _recordedVideos),
       ),
     );
-    
+    startImageStream();
   }
 }
